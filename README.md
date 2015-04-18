@@ -28,6 +28,12 @@ There is a Makefile in the project's root which will ssh to vagrant environment 
 make
 ```
 
+After you are done, you can shutdown the vagrant VM.
+
+```
+vagrant halt
+```
+
 ### Without Vagrant
 If you choose to not use vagrant and have everything installed on your machine (can be an interesting option if you want to develop for TinyOS using a [Raspberry Pi](https://www.raspberrypi.org/) ), you have to go to src directory:
 
