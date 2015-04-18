@@ -52,3 +52,9 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# Project specific
+app.xml
+TOSSIM.py
+simbuild/
+.vagrant
