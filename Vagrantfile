@@ -23,6 +23,7 @@ read -d '' PROFILE_SNIPPET <<"EOF"
 export TOSROOT=/opt/tinyos-2.1.2
 export TOSDIR=$TOSROOT/tos
 export CLASSPATH=$CLASSPATH:$TOSROOT/support/sdk/java
+export PYTHONPATH=.:$TOSROOT/support/sdk/python
 export MAKERULES=$TOSROOT/support/make/Makerules
 export PATH=/opt/msp430/bin:$PATH
 source /opt/tinyos-2.1.2/tinyos.sh

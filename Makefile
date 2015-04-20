@@ -10,5 +10,7 @@ tossim:
 	$(SSH) -c '$(GOTO_SRC_DIR) && $(MAKE_TOSSIM)'
 clean:
 	$(SSH) -c '$(GOTO_SRC_DIR) && make clean'
+run:
+	$(SSH) -c '$(GOTO_SRC_DIR) && python simulator.py'
 
 all: tossim
