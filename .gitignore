@@ -58,3 +58,4 @@ app.xml
 TOSSIM.py
 simbuild/
 .vagrant
+log.txt

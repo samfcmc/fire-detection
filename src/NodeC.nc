@@ -23,6 +23,8 @@ module NodeC {
 implementation {
   bool busy = FALSE;
   message_t pkt;
+  // Only for server node
+  FILE *f;
 
   event void Boot.booted() {
     dbg("Boot", "Booted\n");
@@ -36,6 +38,9 @@ implementation {
     }
     else {
       dbg("Boot", "Booted server node\n");
+      f = fopen("log.txt", "w");
+      writeF(f, call Timer0.getNow(), "Server booted\n");
+      fclose(f);
     }
   }
 
@@ -88,6 +93,7 @@ implementation {
 
   event message_t* Receive.receive(message_t *msg, void *payload, uint8_t len) {
     if(len == sizeof(FireDetectionMsg)) {
+      FireDetectionMsg *btrpkt = (FireDetectionMsg*) payload;
       if(IS_ROUTING_NODE) {
         //TODO: Retransmit the message
       }
@@ -97,6 +103,7 @@ implementation {
       else {
         // Is server node
         //TODO: Print to file
+        fprintf(f, "testing\n");
       }
     }
     return msg;
