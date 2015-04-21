@@ -6,13 +6,14 @@ enum {
   SERVER_NODE_ID = 0,
   ROUTING_NODE_MIN_ID = 1,
   ROUTING_NODE_MAX_ID = 99,
-  SENSOR_NODE_MIN_ID = 100
+  SENSOR_NODE_MIN_ID = 100,
+  AM_FIRE_DETECTION = 6
 };
 
-/*typedef nx_struct FireDetectionMsg {
-  TODO:
+typedef nx_struct FireDetectionMsg {
+  //TODO:
 } *FireDetectionMsg;
-*/
+
 /*
  * Helper macros to distinguish between different nodes
  */

@@ -10,6 +10,10 @@ module NodeC {
   uses interface Boot;
   uses interface Timer<TMilli> as Timer0;
   uses interface SplitControl as AMControl;
+  uses interface Packet;
+  uses interface AMPacket;
+  uses interface AMSend;
+  uses interface Receive;
   uses interface Gps;
   uses interface HumiditySensor;
   uses interface TemperatureSensor;
@@ -74,6 +78,28 @@ implementation {
     if(err == SUCCESS) {
       //TODO: Implement this
     }
+  }
+
+  event void AMSend.sendDone(message_t *msg, error_t err) {
+    if(err == SUCCESS) {
+      //TODO: Implement this
+    }
+  }
+
+  event message_t* Receive.receive(message_t *msg, void *payload, uint8_t len) {
+    if(len == sizeof(FireDetectionMsg)) {
+      if(IS_ROUTING_NODE) {
+        //TODO: Retransmit the message
+      }
+      else if(IS_SENSOR_NODE) {
+        //TODO: Depends on the communication protocol
+      }
+      else {
+        // Is server node
+        //TODO: Print to file
+      }
+    }
+    return msg;
   }
 
 }
