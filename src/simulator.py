@@ -49,7 +49,7 @@ def nothing():
     #TODO: This is just a placeholder
     return None
 
-def small_test():
+def walkthrough():
 	for i in range(0, 3):
 		m = t.getNode(i)
 		m.bootAtTime((31 + t.ticksPerSecond() / 10) * i +  1)
@@ -62,7 +62,7 @@ def exit():
 
 # Dictionary used by identify the functions
 options = {
-	1 : small_test,
+	1 : walkthrough,
 	2 :	nothing,
 	3 : nothing,
 	4 : nothing,
@@ -76,7 +76,7 @@ print "Welcome to Fire Detection Network, the supported functionalities are :"
 # Main loop
 
 while True:
-    print "1 - Small Test"
+    print "1 - Walkthrough"
     print "2 - Nothing"
     print "3 - Nothing"
     print "4 - Nothing"
