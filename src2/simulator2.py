@@ -15,7 +15,7 @@ m = t.mac()
 r = t.radio()
 
 # Debug channels
-t.addChannel("Debug", sys.stdout)
+t.addChannel("Boot", sys.stdout)
 t.addChannel("NodeC", sys.stdout)
 
 max_nodes = 10
