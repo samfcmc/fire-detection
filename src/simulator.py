@@ -1,95 +1,36 @@
-#!/usr/bin/env python
-
-# ------------------------------------- #
-# User interface for the Sensor Network #
-# ------------------------------------- #
-
-import sys;
 from TOSSIM import *
-from tinyos.tossim.TossimApp import *
+import sys
 
-# load the system components
-n = NescApp()
-t = Tossim(n.variables.variables())
-m = t.mac()
+t = Tossim([])
 r = t.radio()
-
-# Debug channels
-t.addChannel("Debug", sys.stdout)
-t.addChannel("NodeC", sys.stdout)
-
-max_nodes = 10
-
-# add the nodes to the radio channel and boot them
-for i in range(max_nodes):
-	m = t.getNode(i)
-	m.bootAtTime((31 + t.ticksPerSecond() / 10) * i +  1)
-
-# create the sensor network topology
 f = open("topo.txt", "r")
+
 for line in f:
   s = line.split()
   if s:
-    if s[0] == "gain":
-      r.add(int(s[1]), int(s[2]), int(s[3]))
+    print " ", s[0], " ", s[1], " ", s[2];
+    r.add(int(s[0]), int(s[1]), float(s[2]))
 
-# create the noise model for each node
+t.addChannel("Debug", sys.stdout)
+
 noise = open("noise.txt", "r")
 for line in noise:
-  s = line.strip()
-  if s:
-    val = int(s)
-    for i in range(max_nodes):
+  str1 = line.strip()
+  if str1:
+    val = int(str1)
+    for i in range(103):
       t.getNode(i).addNoiseTraceReading(val)
 
-for i in range(max_nodes):
+for i in range(103):
+  print "Creating noise model for ",i;
   t.getNode(i).createNoiseModel()
 
-def nothing():
-    #TODO: This is just a placeholder
-    return None
+t.getNode(0).bootAtTime(0);
+t.getNode(1).bootAtTime(5);
+t.getNode(2).bootAtTime(10);
+t.getNode(100).bootAtTime(15);
+t.getNode(101).bootAtTime(20);
+t.getNode(102).bootAtTime(25);
 
-def walkthrough():
-	for i in range(0, 3):
-		m = t.getNode(i)
-		m.bootAtTime((31 + t.ticksPerSecond() / 10) * i +  1)
-
-	for i in range(100):
-		t.runNextEvent()
-
-def exit():
-    sys.exit()
-
-# Dictionary used by identify the functions
-options = {
-	1 : walkthrough,
-	2 :	nothing,
-	3 : nothing,
-	4 : nothing,
-	5 : nothing,
-	6 : nothing,
-    7 : exit,
-}
-
-print "Welcome to Fire Detection Network, the supported functionalities are :"
-
-# Main loop
-
-while True:
-    print "1 - Walkthrough"
-    print "2 - Nothing"
-    print "3 - Nothing"
-    print "4 - Nothing"
-    print "5 - Nothing"
-    print "6 - Nothing"
-    print "7 - Exit"
-
-    try:
-        num = int(raw_input("Please, choose an option : "))
-        options[num]()
-    except ValueError:
-        print("Please insert a valid option")
-        continue
-    except KeyError:
-        print("There is no such option")
-        continue
+for i in range(500):
+  t.runNextEvent();

@@ -2,14 +2,20 @@
  * Smoke Detector Provider
  */
 
-#include "SmokeDetector.h"
-
 module SmokeDetectorP {
   provides interface SmokeDetector;
+  uses interface Random;
+  uses interface Timer<TMilli> as Timer1;
 }
 
 implementation {
-  command void SmokeDetector.detectSmoke() {
-    //TODO: Detect smoke and signal event
-  }
+	command void SmokeDetector.boot() {
+		call Timer1.startOneShotAt(call Random.rand16() % 1000, 0);
+	}
+
+	event void Timer1.fired() {
+		signal SmokeDetector.burning();
+	}
+
+
 }

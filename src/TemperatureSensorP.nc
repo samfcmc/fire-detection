@@ -2,14 +2,19 @@
  * Temperature Sensor Provider
  */
 
-#include "TemperatureSensor.h"
+enum
+{
+	MAX_TEMPERATURE = 100
+};
 
 module TemperatureSensorP {
   provides interface TemperatureSensor;
+  uses interface Random;
 }
 
 implementation {
-  command void TemperatureSensor.getTemperature() {
-    //TODO: Get value and signal event
+  // The temperature is measured in Kelvin
+  command uint16_t TemperatureSensor.getTemperature() {
+    return call Random.rand16() % MAX_TEMPERATURE;
   }
 }

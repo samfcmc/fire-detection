@@ -10,9 +10,15 @@ enum {
   AM_FIRE_DETECTION = 6
 };
 
-typedef nx_struct FireDetectionMsg {
-  //TODO:
-} *FireDetectionMsg;
+typedef nx_struct Message {
+	nx_uint8_t type; //0-Boot, 1-Timer, 2-Smoke
+	nx_uint16_t nodeId;
+	nx_uint32_t instant;
+	nx_uint16_t x;
+	nx_uint16_t y;
+	nx_uint16_t temperature;
+	nx_uint16_t humidity;
+} Message;
 
 /*
  * Helper macros to distinguish between different nodes
@@ -22,8 +28,8 @@ typedef nx_struct FireDetectionMsg {
 #define IS_SENSOR_NODE (TOS_NODE_ID > ROUTING_NODE_MAX_ID)
 
 // Helper function to write to file
-inline void writeF(FILE *f, uint32_t time, char *msg) {
-  fprintf(f, "%d %d %s", time, TOS_NODE_ID, msg);
+inline void writeF(FILE *f, uint32_t instant, char *msg) {
+  fprintf(f, "Instant %d, Node %d : %s", instant, TOS_NODE_ID, msg);
 }
 
 #endif

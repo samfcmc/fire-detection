@@ -1,2 +1,2 @@
-COMPONENT=FireDetectionAppC
+COMPONENT=App
 include $(MAKERULES)

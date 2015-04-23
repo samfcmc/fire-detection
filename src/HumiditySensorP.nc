@@ -2,14 +2,18 @@
  * Humidity Sensor Provider
  */
 
-#include "HumiditySensor.h"
+enum
+{
+	HUMIDITY_LIMIT = 100
+};
 
 module HumiditySensorP {
   provides interface HumiditySensor;
+  uses interface Random;
 }
 
 implementation {
-  command void HumiditySensor.getHummidity() {
-    //TODO: Get value and signal event
+  command uint16_t HumiditySensor.getHumidity() {
+  		return call Random.rand16() % HUMIDITY_LIMIT;
   }
 }

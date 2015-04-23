@@ -1,2 +1,0 @@
-COMPONENT=App
-include $(MAKERULES)
