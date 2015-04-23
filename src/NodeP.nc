@@ -12,8 +12,7 @@ module NodeP {
   uses interface Timer<TMilli> as Timer0;
 
   uses interface GPS;
-  uses interface HumiditySensor;
-  uses interface TemperatureSensor;
+  uses interface Sensors;
   uses interface SmokeDetector;
 
   uses interface Packet;
@@ -42,7 +41,7 @@ implementation {
     else if(IS_SENSOR_NODE) {
       dbg("Debug", "Instant %d - Sensor Node Booted!\n", call Timer0.getNow());
     }
-    else if(IS_SERVER_NODE) {
+    else {
       dbg("Debug", "Instant %d - Server Node Booted!\n", call Timer0.getNow());
       f = fopen("log.txt", "a");
       fprintf(f, "Instant %d: Server booted.\n", call Timer0.getNow());
@@ -61,15 +60,28 @@ implementation {
           btrpkt->type = MESSAGE_GPS;
           btrpkt->value1 = call GPS.getX();
           btrpkt->value2 = call GPS.getY();
+          if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS) {
+            busy = TRUE;
+            dbg("Debug", "Instant %d - Message type %d sent!\n", btrpkt->timestamp, btrpkt->type);
+          }
         } else {
-          btrpkt->type = MESSAGE_SENSORS;
-          btrpkt->value1 = call TemperatureSensor.getTemperature();
-          btrpkt->value2 = call HumiditySensor.getHumidity();
+          call Sensors.readValues();
         }
-        if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS) {
-          busy = TRUE;
-          dbg("Debug", "Instant %d - Message type %d sent!\n", call Timer0.getNow(), btrpkt->type);
-        }
+
+    }
+  }
+
+  event void Sensors.valuesReady(error_t err, uint16_t temperature, uint16_t humidity) {
+    if(!busy) {
+      Message* btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
+      btrpkt->nodeId = TOS_NODE_ID;
+      btrpkt->timestamp = call Timer0.getNow();
+      btrpkt->type = MESSAGE_SENSORS;
+      btrpkt->value1 = temperature;
+      btrpkt->value2 = humidity;
+      if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS) {
+        busy = TRUE;
+      }
     }
   }
 
@@ -82,7 +94,7 @@ implementation {
       if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS)
       {
           busy = TRUE;
-          dbg("Debug", "Instant %d - Message type %d sent!\n", call Timer0.getNow(), btrpkt->type);
+          dbg("Debug", "Instant %d - Message type %d sent!\n", btrpkt->timestamp, btrpkt->type);
       }
     }
   }
@@ -105,9 +117,10 @@ implementation {
     }
 
     event void AMSend.sendDone(message_t* msg, error_t error) {
-        if (&pkt == msg)
-        {
-            busy = FALSE;
+        if (&pkt == msg) {
+          Message *btrpkt = (Message*) (call Packet.getPayload(msg, sizeof(Message)));
+          dbg("Debug", "Instant %d - Message type %d sent!\n", btrpkt->timestamp, btrpkt->type);
+          busy = FALSE;
         }
     }
 
@@ -115,20 +128,17 @@ implementation {
         Message* received = (Message*) payload;
 
         if(!busy && IS_ROUTING_NODE){
-
           Message* btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
           btrpkt->type = received->type;
           btrpkt->nodeId = received->nodeId;
           btrpkt->timestamp = received->timestamp;
           btrpkt->value1 = received->value1;
           btrpkt->value2 = received->value2;
-          if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS)
-                {
-                    busy = TRUE;
-                    dbg("Debug", "Instant %d - Message type %d sent!\n", call Timer0.getNow(), btrpkt->type);
-                }
-        } else if (IS_SERVER_NODE){
-
+          if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS) {
+            busy = TRUE;
+          }
+        }
+        else if (IS_SERVER_NODE){
           f = fopen("log.txt", "a");
           if(received->type == MESSAGE_GPS){
             fprintf(f, "Instant %d, Node %d, x=%d, y=%d.\n", received->timestamp, received->nodeId, received->value1, received->value2);
