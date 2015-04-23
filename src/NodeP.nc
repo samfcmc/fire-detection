@@ -48,8 +48,6 @@
         fprintf(f, "Instant %d: Server booted.\n", call Timer0.getNow());
         fclose(f);
       }
-
-      
     }
 
     event void Timer0.fired() {
@@ -60,11 +58,11 @@
           btrpkt-> instant = call Timer0.getNow();
           if(firstMsg){
             firstMsg = FALSE;
-            btrpkt-> type = 0;
+            btrpkt-> type = MESSAGE_GPS;
             btrpkt-> x = call GPS.getX();
-            btrpkt-> y = call GPS.getY(); 
+            btrpkt-> y = call GPS.getY();
           } else {
-            btrpkt-> type = 1;
+            btrpkt-> type = MESSAGE_SENSORS;
             btrpkt-> temperature = call TemperatureSensor.getTemperature();
             btrpkt-> humidity = call HumiditySensor.getHumidity();
           }
@@ -79,7 +77,7 @@
     event void SmokeDetector.burning(){
       if(!busy && IS_SENSOR_NODE){
         Message* btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
-        btrpkt-> type = 2;
+        btrpkt-> type = MESSAGE_FIRE;
         btrpkt-> nodeId = TOS_NODE_ID;
         btrpkt-> instant = call Timer0.getNow();
         if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS)
@@ -104,20 +102,17 @@
           }
       }
 
-      event void AMControl.stopDone(error_t err)
-      {
+      event void AMControl.stopDone(error_t err) {
       }
 
-      event void AMSend.sendDone(message_t* msg, error_t error)
-      {
+      event void AMSend.sendDone(message_t* msg, error_t error) {
           if (&pkt == msg)
           {
               busy = FALSE;
           }
       }
 
-      event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len)
-      {
+      event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len) {
           Message* received = (Message*) payload;
 
           if(!busy && IS_ROUTING_NODE){
@@ -138,11 +133,11 @@
           } else if (IS_SERVER_NODE){
 
             f = fopen("log.txt", "a");
-            if(received->type == 0){
+            if(received->type == MESSAGE_GPS){
               fprintf(f, "Instant %d, Node %d, x=%d, y=%d.\n", received->instant, received->nodeId, received->x, received->y);
-            }else if(received->type == 1){
+            }else if(received->type == MESSAGE_SENSORS){
               fprintf(f, "Instant %d, Node %d, Temperature=%d, Humidity=%d.\n", received->instant, received->nodeId, received->temperature, received->humidity);
-            }else if(received->type == 2){
+            }else if(received->type == MESSAGE_FIRE){
               fprintf(f, "Instant %d, Node %d, Fire!!\n", received->instant, received->nodeId);
             }
             fclose(f);

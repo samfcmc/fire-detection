@@ -7,7 +7,10 @@ enum {
   ROUTING_NODE_MIN_ID = 1,
   ROUTING_NODE_MAX_ID = 99,
   SENSOR_NODE_MIN_ID = 100,
-  AM_FIRE_DETECTION = 6
+  AM_FIRE_DETECTION = 6,
+  MESSAGE_GPS = 0,
+  MESSAGE_SENSORS = 1,
+  MESSAGE_FIRE = 2
 };
 
 typedef nx_struct Message {
