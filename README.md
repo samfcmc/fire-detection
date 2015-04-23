@@ -25,7 +25,7 @@ vagrant up
 There is a Makefile in the project's root which will ssh to vagrant environment and run the command to build it for [TOSSIM](http://tinyos.stanford.edu/tinyos-wiki/index.php/TOSSIM), which is a very nice simulator for TinyOS and will allow you to test the project in a really easy way. To do so, you just have to run make command:
 
 ```
-make
+make tossim
 ```
 
 After you are done, you can shutdown the vagrant VM.
