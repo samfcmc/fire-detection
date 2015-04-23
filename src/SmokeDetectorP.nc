@@ -10,6 +10,7 @@ module SmokeDetectorP {
 
 implementation {
 	command void SmokeDetector.boot() {
+    dbg("Debug", "Smoke detector booted\n");
 		call Timer1.startOneShotAt(call Random.rand16() % 1000, 0);
 	}
 

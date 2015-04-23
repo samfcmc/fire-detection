@@ -21,6 +21,7 @@ implementation {
 
   NodeP.Boot -> MainC;
   NodeP.Timer0 -> Timer0;
+  NodeP.Timer1 -> Timer1;
   NodeP.GPS -> GPSP;
   SensorsP.Random -> RandomC;
   NodeP.Sensors -> SensorsP;
@@ -29,6 +30,7 @@ implementation {
   SmokeDetectorP.Timer1 -> Timer1;
   GPSP.Random ->RandomC;
 
+  NodeP.AMPacket -> AMSenderC;
   NodeP.Packet -> AMSenderC;
   NodeP.AMSend -> AMSenderC;
   NodeP.AMControl -> ActiveMessageC;

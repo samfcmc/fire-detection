@@ -11,11 +11,15 @@ module NodeP {
 
   uses interface Timer<TMilli> as Timer0;
 
+  //Used to control messages timeout
+  uses interface Timer<TMilli> as Timer1;
+
   uses interface GPS;
   uses interface Sensors;
   uses interface SmokeDetector;
 
   uses interface Packet;
+  uses interface AMPacket;
   uses interface AMSend;
   uses interface SplitControl as AMControl;
   uses interface Receive;
@@ -29,35 +33,33 @@ implementation {
   bool firstMsg = TRUE;
 
   message_t pkt;
+  Message *pendingMsg = NULL;
+  am_addr_t routeNodeAddr;
 
   event void Boot.booted() {
-
-    call AMControl.start();
-    //call SmokeDetector.boot();
-
     if(IS_ROUTING_NODE) {
       dbg("Debug", "Instant %d - Routing Node Booted!\n", call Timer0.getNow());
     }
     else if(IS_SENSOR_NODE) {
       dbg("Debug", "Instant %d - Sensor Node Booted!\n", call Timer0.getNow());
     }
-    else {
+    else if(IS_SERVER_NODE){
       dbg("Debug", "Instant %d - Server Node Booted!\n", call Timer0.getNow());
       f = fopen("log.txt", "w");
       fprintf(f, "Instant %d: Server booted.\n", call Timer0.getNow());
       fclose(f);
     }
+    call AMControl.start();
   }
 
   event void Timer0.fired() {
-    dbg("Debug", "Timer fired\n");
-    if(!busy){
-        if(firstMsg){
-          firstMsg = FALSE;
-          call GPS.readPosition();
-        } else {
-          call Sensors.readValues();
-        }
+    call Sensors.readValues();
+  }
+
+  event void Timer1.fired() {
+    if(IS_SENSOR_NODE) {
+      dbg("Debug", "Message timeout\n");
+      call GPS.readPosition();
     }
   }
 
@@ -86,18 +88,24 @@ implementation {
       if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS) {
         busy = TRUE;
       }
-      dbg("Debug", "Position ready\n");
+      dbg("GPS", "Position ready\n");
     }
   }
 
   event void SmokeDetector.burning(){
-    if(!busy && IS_SENSOR_NODE){
+    dbg("Debug", "FIRE ALERT\n");
+    if(IS_SENSOR_NODE){
       Message* btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
       btrpkt-> type = MESSAGE_FIRE;
       btrpkt-> nodeId = TOS_NODE_ID;
       btrpkt-> timestamp = call Timer0.getNow();
-      if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS) {
-        busy = TRUE;
+      if(busy) {
+        pendingMsg = btrpkt;
+      }
+      else {
+        if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS) {
+          busy = TRUE;
+        }
       }
     }
   }
@@ -105,8 +113,9 @@ implementation {
   event void AMControl.startDone(error_t err) {
     if (err == SUCCESS) {
       if(IS_SENSOR_NODE) {
-        call Timer0.startPeriodicAt((TOS_NODE_ID % 100)*20, TIMER_PERIOD);
-        dbg("Debug", "Start done\n");
+        call GPS.readPosition();
+        //call Timer0.startPeriodicAt((TOS_NODE_ID % 100)*20, TIMER_PERIOD);
+        dbg("Start", "Start done\n");
       }
     }
     else {
@@ -118,28 +127,69 @@ implementation {
   }
 
   event void AMSend.sendDone(message_t* msg, error_t error) {
-    if (&pkt == msg) {
-      Message *btrpkt = (Message*) (call Packet.getPayload(msg, sizeof(Message)));
-      dbg("Debug", "Instant %d - Message type %d sent!\n", btrpkt->timestamp, btrpkt->type);
+    if(&pkt == msg) {
+      Message *btrpkt = (Message*) (call Packet.getPayload(&pkt, sizeof(Message)));
+      dbg("Messages", "Instant %d - Message type %d sent!\n", btrpkt->timestamp, btrpkt->type);
       busy = FALSE;
+      if(IS_SENSOR_NODE) {
+        if(btrpkt->type == MESSAGE_GPS) {
+          call Timer1.startOneShot(TIMEOUT);
+        }
+      }
+      else if(IS_ROUTING_NODE) {
+        //Check for pending messages
+        if(pendingMsg) {
+          dbg("Messages", "Message from node %d of type %d was pending\n", pendingMsg->type, pendingMsg->nodeId);
+          btrpkt->type = pendingMsg->type;
+          btrpkt->nodeId = pendingMsg->nodeId;
+          btrpkt->timestamp = pendingMsg->timestamp;
+          btrpkt->value1 = pendingMsg->value1;
+          btrpkt->value2 = pendingMsg->value2;
+          if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS) {
+            busy = TRUE;
+            pendingMsg = NULL;
+          }
+        }
+      }
     }
   }
 
   event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len) {
     Message* received = (Message*) payload;
-
-    if(!busy && IS_ROUTING_NODE){
-      Message* btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
-      btrpkt->type = received->type;
-      btrpkt->nodeId = received->nodeId;
-      btrpkt->timestamp = received->timestamp;
-      btrpkt->value1 = received->value1;
-      btrpkt->value2 = received->value2;
-      if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS) {
-        busy = TRUE;
+    if(IS_ROUTING_NODE) {
+      if(busy) {
+        if((received->type == MESSAGE_FIRE) ||
+          (received->type == MESSAGE_GPS && pendingMsg
+            && pendingMsg->type != MESSAGE_FIRE)) {
+          pendingMsg = received;
+        }
+      }
+      else {
+        Message* btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
+        btrpkt->type = received->type;
+        btrpkt->nodeId = received->nodeId;
+        btrpkt->timestamp = received->timestamp;
+        btrpkt->value1 = received->value1;
+        btrpkt->value2 = received->value2;
+        if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message)) == SUCCESS) {
+          busy = TRUE;
+        }
+        dbg("Messages", "Received message from node %d type %d\n", received->nodeId, received->type);
       }
     }
-    else if (IS_SERVER_NODE){
+    else if(IS_SENSOR_NODE) {
+      if(received->type == MESSAGE_GPS && received->nodeId == TOS_NODE_ID && !routeNodeAddr) {
+        // Routing node sends back gps coordinates of this node
+        // Works like an acknowledge
+        call Timer1.stop();
+        routeNodeAddr = call AMPacket.source(msg);
+        dbg("Debug", "Received GPS coordinates back %d\n", routeNodeAddr);
+        call Timer0.startPeriodic(TIMER_PERIOD);
+        call SmokeDetector.boot();
+      }
+    }
+    else if(IS_SERVER_NODE){
+      dbg("Messages", "Server received message from node %d\n", received->nodeId);
       f = fopen("log.txt", "a");
       if(received->type == MESSAGE_GPS){
         fprintf(f, "Instant %d, Node %d, x=%d, y=%d.\n", received->timestamp, received->nodeId, received->value1, received->value2);

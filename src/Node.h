@@ -2,12 +2,13 @@
 #define NODE_H
 
 enum {
-  TIMER_PERIOD = 100,
+  TIMER_PERIOD = 50,
   SERVER_NODE_ID = 0,
   ROUTING_NODE_MIN_ID = 1,
   ROUTING_NODE_MAX_ID = 99,
   SENSOR_NODE_MIN_ID = 100,
   AM_FIRE_DETECTION = 6,
+  TIMEOUT = 500,
 
   /*
    * Message types
