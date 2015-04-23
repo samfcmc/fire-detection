@@ -8,6 +8,10 @@ enum {
   ROUTING_NODE_MAX_ID = 99,
   SENSOR_NODE_MIN_ID = 100,
   AM_FIRE_DETECTION = 6,
+
+  /*
+   * Message types
+   */
   MESSAGE_GPS = 0,
   MESSAGE_SENSORS = 1,
   MESSAGE_FIRE = 2
@@ -16,11 +20,9 @@ enum {
 typedef nx_struct Message {
 	nx_uint8_t type; //0-Boot, 1-Timer, 2-Smoke
 	nx_uint16_t nodeId;
-	nx_uint32_t instant;
-	nx_uint16_t x;
-	nx_uint16_t y;
-	nx_uint16_t temperature;
-	nx_uint16_t humidity;
+	nx_uint32_t timestamp;
+	nx_uint16_t value1;
+	nx_uint16_t value2;
 } Message;
 
 /*
