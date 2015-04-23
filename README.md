@@ -50,4 +50,24 @@ make micaz sim
 ## Run the simulator
 There will be a simulator written in python to simulate different events in the node network.
 
-TODO: Implement the simulator and describe it here
+### With Vagrant
+If you are using vagrant you can use the Makefile in the project's root.
+
+```
+make run
+```
+
+### Without Vagrant
+If you were crazy enough to have everything installed on your machine you have to go to src directory
+
+```
+cd src/
+```
+
+and run the simulator
+
+```
+python simulator.py
+```
+
+TODO: Describe its features here
