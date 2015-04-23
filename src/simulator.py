@@ -11,6 +11,7 @@ for line in f:
     print " ", s[0], " ", s[1], " ", s[2];
     r.add(int(s[0]), int(s[1]), float(s[2]))
 
+t.addChannel("Boot", sys.stdout)
 t.addChannel("Debug", sys.stdout)
 
 noise = open("noise.txt", "r")
@@ -22,15 +23,14 @@ for line in noise:
       t.getNode(i).addNoiseTraceReading(val)
 
 for i in range(103):
-  print "Creating noise model for ",i;
   t.getNode(i).createNoiseModel()
 
 t.getNode(0).bootAtTime(0);
-t.getNode(1).bootAtTime(5);
-t.getNode(2).bootAtTime(10);
-t.getNode(100).bootAtTime(15);
-t.getNode(101).bootAtTime(20);
-t.getNode(102).bootAtTime(25);
+t.getNode(1).bootAtTime(20);
+t.getNode(2).bootAtTime(40);
+t.getNode(100).bootAtTime(80);
+t.getNode(101).bootAtTime(100);
+t.getNode(102).bootAtTime(120);
 
-for i in range(500):
+for i in range(1000):
   t.runNextEvent();
