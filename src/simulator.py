@@ -13,22 +13,32 @@ t.addChannel("Debug", sys.stdout)
 t.addChannel("Messages", sys.stdout)
 
 def run(args):
-    if len(args) == 1:
-        try:
-            events = int(args[0])
-            print("--------------------------")
-            print("Running " + str(events) + " events")
-            print("--------------------------")
-            for i in range(events):
-                t.runNextEvent()
-        except ValueError:
-            print("ERROR: run argument must be a number!")
+    if len(nodes) == 0:
+        print("You need to load a topology first")
     else:
-        print('You have to specify how many events you want to run')
-        print("Example: 'run 3' will run 3 events")
+        if len(args) == 1:
+            try:
+                events = int(args[0])
+                print("--------------------------")
+                print("Running " + str(events) + " events")
+                print("--------------------------")
+                for i in range(events):
+                    t.runNextEvent()
+            except ValueError:
+                print("ERROR: run argument must be a number!")
+        else:
+            print('You have to specify how many events you want to run')
+            print("Example: 'run 3' will run 3 events")
 
 def help(args):
-    print("Help...")
+    print("----------------------------")
+    print("Available commands")
+    print("----------------------------")
+    print("load topology <filename> : Load a topology from a file")
+    print("load noise <filename> : Load a noise model from a file")
+    print("boot : Boot all nodes in the network")
+    print("run <events> : run the next <events> in the node network")
+    print("exit : Exit from the simulator")
 
 def exit(args):
     print("Exiting...")
@@ -102,7 +112,7 @@ def get_args(array):
 
 # Main loop
 while True:
-    print("Type a command or just 'help'")
+    print("> Type a command or just 'help'")
     user_input = raw_input()
     input_array = user_input.split()
     if(len(input_array) > 0):
@@ -113,3 +123,4 @@ while True:
         else:
             print("You need to type a valid command")
             print("Type 'help' to see a list of all available commands")
+    print("----------------------------------")
