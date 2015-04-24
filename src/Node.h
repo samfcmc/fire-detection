@@ -9,13 +9,15 @@ enum {
   SENSOR_NODE_MIN_ID = 100,
   AM_FIRE_DETECTION = 6,
   TIMEOUT = 500,
+  MAX_SENSOR_NODES = 100,
 
   /*
    * Message types
    */
   MESSAGE_GPS = 0,
   MESSAGE_SENSORS = 1,
-  MESSAGE_FIRE = 2
+  MESSAGE_FIRE = 2,
+  MESSAGE_GPS_ACK
 };
 
 typedef nx_struct Message {

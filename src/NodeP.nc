@@ -36,6 +36,9 @@ implementation {
   Message *pendingMsg = NULL;
   am_addr_t routeNodeAddr;
 
+  //
+  uint8_t sensorNodes = MAX_SENSOR_NODES;
+
   event void Boot.booted() {
     if(IS_ROUTING_NODE) {
       dbg("Debug", "Instant %d - Routing Node Booted!\n", call Timer0.getNow());
@@ -135,20 +138,22 @@ implementation {
         if(btrpkt->type == MESSAGE_GPS) {
           call Timer1.startOneShot(TIMEOUT);
         }
+        else if(btrpkt->type == MESSAGE_GPS_ACK) {
+          call Timer0.startPeriodic(TIMER_PERIOD);
+          call SmokeDetector.boot();
+        }
       }
-      else if(IS_ROUTING_NODE) {
-        //Check for pending messages
-        if(pendingMsg) {
-          dbg("Messages", "Message from node %d of type %d was pending\n", pendingMsg->type, pendingMsg->nodeId);
-          btrpkt->type = pendingMsg->type;
-          btrpkt->nodeId = pendingMsg->nodeId;
-          btrpkt->timestamp = pendingMsg->timestamp;
-          btrpkt->value1 = pendingMsg->value1;
-          btrpkt->value2 = pendingMsg->value2;
-          if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS) {
-            busy = TRUE;
-            pendingMsg = NULL;
-          }
+      //Check for pending messages
+      if(pendingMsg) {
+        dbg("Messages", "Message from node %d of type %d was pending\n", pendingMsg->type, pendingMsg->nodeId);
+        btrpkt->type = pendingMsg->type;
+        btrpkt->nodeId = pendingMsg->nodeId;
+        btrpkt->timestamp = pendingMsg->timestamp;
+        btrpkt->value1 = pendingMsg->value1;
+        btrpkt->value2 = pendingMsg->value2;
+        if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS) {
+          busy = TRUE;
+          pendingMsg = NULL;
         }
       }
     }
@@ -157,7 +162,14 @@ implementation {
   event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len) {
     Message* received = (Message*) payload;
     if(IS_ROUTING_NODE) {
-      if(busy) {
+      if(received->type == MESSAGE_GPS && !sensorNodes) {
+        // Already has 100 sensor nodes
+      }
+      else if(received->type == MESSAGE_GPS_ACK) {
+        dbg("Messages", "Received GPS ACK from node %d\n", received->nodeId);
+        sensorNodes--;
+      }
+      else if(busy) {
         if((received->type == MESSAGE_FIRE) ||
           (received->type == MESSAGE_GPS && pendingMsg
             && pendingMsg->type != MESSAGE_FIRE)) {
@@ -178,14 +190,19 @@ implementation {
       }
     }
     else if(IS_SENSOR_NODE) {
+      Message* btrpkt;
       if(received->type == MESSAGE_GPS && received->nodeId == TOS_NODE_ID && !routeNodeAddr) {
         // Routing node sends back gps coordinates of this node
         // Works like an acknowledge
         call Timer1.stop();
         routeNodeAddr = call AMPacket.source(msg);
         dbg("Debug", "Received GPS coordinates back %d\n", routeNodeAddr);
-        call Timer0.startPeriodic(TIMER_PERIOD);
-        call SmokeDetector.boot();
+        btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
+        btrpkt->type = MESSAGE_GPS_ACK;
+        btrpkt->nodeId = TOS_NODE_ID;
+        if (call AMSend.send(routeNodeAddr, &pkt, sizeof(Message)) == SUCCESS) {
+          busy = TRUE;
+        }
       }
     }
     else {
