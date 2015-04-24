@@ -36,7 +36,8 @@ implementation {
   Message *pendingMsg = NULL;
   am_addr_t routeNodeAddr;
 
-  //
+  // Limit of sensor nodes that can be connected
+  // to a routing node
   uint8_t sensorNodes = MAX_SENSOR_NODES;
 
   event void Boot.booted() {
@@ -61,7 +62,10 @@ implementation {
 
   event void Timer1.fired() {
     if(IS_SENSOR_NODE) {
+      routeNodeAddr = 0;
       dbg("Debug", "Message timeout\n");
+      call Timer0.stop();
+      call SmokeDetector.turnOff();
       call GPS.readPosition();
     }
   }
@@ -117,7 +121,6 @@ implementation {
     if (err == SUCCESS) {
       if(IS_SENSOR_NODE) {
         call GPS.readPosition();
-        //call Timer0.startPeriodicAt((TOS_NODE_ID % 100)*20, TIMER_PERIOD);
         dbg("Start", "Start done\n");
       }
     }
@@ -135,8 +138,12 @@ implementation {
       dbg("Messages", "Instant %d - Message type %d sent!\n", btrpkt->timestamp, btrpkt->type);
       busy = FALSE;
       if(IS_SENSOR_NODE) {
-        if(btrpkt->type == MESSAGE_GPS) {
-          call Timer1.startOneShot(TIMEOUT);
+        if(btrpkt->type == MESSAGE_SENSORS ||
+          btrpkt->type == MESSAGE_GPS) {
+            dbg("Messages", "Sent sensor message to node %d\n", routeNodeAddr);
+            if(!call Timer1.isRunning()) {
+              call Timer1.startOneShot(TIMEOUT);
+            }
         }
         else if(btrpkt->type == MESSAGE_GPS_ACK) {
           call Timer0.startPeriodic(TIMER_PERIOD);
@@ -191,7 +198,13 @@ implementation {
     }
     else if(IS_SENSOR_NODE) {
       Message* btrpkt;
-      if(received->type == MESSAGE_GPS && received->nodeId == TOS_NODE_ID && !routeNodeAddr) {
+      am_addr_t source = call AMPacket.source(msg);
+      if(received->type == MESSAGE_SENSORS && received->nodeId == TOS_NODE_ID) {
+        // A routing node broadcasted a sensor measure message
+        dbg("Messages", "Received sensors message back from node %d\n", source);
+        call Timer1.stop();
+      }
+      else if(received->type == MESSAGE_GPS && received->nodeId == TOS_NODE_ID && !routeNodeAddr) {
         // Routing node sends back gps coordinates of this node
         // Works like an acknowledge
         call Timer1.stop();

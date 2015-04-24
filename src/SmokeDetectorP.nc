@@ -14,6 +14,10 @@ implementation {
 		call FireTimer.startOneShotAt(call Random.rand16() % 1000, 0);
 	}
 
+  command void SmokeDetector.turnOff() {
+    call FireTimer.stop();
+  }
+
 	event void FireTimer.fired() {
     dbg("Debug", "Fire in node %d\n", TOS_NODE_ID);
 		signal SmokeDetector.burning();

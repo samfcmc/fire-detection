@@ -1,9 +1,11 @@
 from TOSSIM import *
 import sys
+from tinyos.tossim.TossimApp import *
 
 EVENTS = 5000
-
-t = Tossim([])
+n = NescApp("Unknown App", "app.xml")
+vars = n.variables.variables()
+t = Tossim(vars)
 r = t.radio()
 
 nodes = {}
@@ -42,6 +44,7 @@ def help(args):
     print("print state : Print the state for each node in the network")
     print("on <node id> Turn on node with id <node id>")
     print("off <node id> Turn off node with id <node id>")
+    print("var <node id> <variable name> : Print the variable value of the node with <node id>")
     print("exit : Exit from the simulator")
 
 def exit(args):
@@ -154,6 +157,21 @@ def on(args):
         print("Wrong argument for on command")
         print("Usage: on <node id>")
 
+def var(args):
+    if len(args) == 2:
+        try:
+            id = int(args[0])
+            var = args[1]
+            node = t.getNode(id)
+            v = node.getVariable(var)
+            value = v.getData()
+            print("Node " + str(id) + " variable: " + var + " value: " + str(value))
+        except ValueError:
+            print("Node id for 'var' command must be a number")
+    else:
+        print("Wrong arguments for var command")
+        print("Usage: var <node id> <variable>")
+
 options = {
     'help': help,
     'run': run,
@@ -162,7 +180,8 @@ options = {
     'boot': boot,
     'print': print_info,
     'off': off,
-    'on': on
+    'on': on,
+    'var': var
 }
 
 def get_command(array):
