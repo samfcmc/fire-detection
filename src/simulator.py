@@ -38,6 +38,10 @@ def help(args):
     print("load noise <filename> : Load a noise model from a file")
     print("boot : Boot all nodes in the network")
     print("run <events> : run the next <events> in the node network")
+    print("print topology : Prints the entire topology of the network")
+    print("print state : Print the state for each node in the network")
+    print("on <node id> Turn on node with id <node id>")
+    print("off <node id> Turn off node with id <node id>")
     print("exit : Exit from the simulator")
 
 def exit(args):
@@ -96,12 +100,69 @@ def boot(args):
             print("Booting node " + str(i) + " in time " + str(time))
             t.getNode(i).bootAtTime(time)
 
+def print_info(args):
+    if len(args) == 0:
+        print("Missing argument of print command")
+    else:
+        arg = args[0]
+        if arg == 'topology':
+            print("------------------------")
+            print("Network topology")
+            print("------------------------")
+            for src in nodes:
+                for dest in nodes:
+                    if r.connected(src, dest):
+                        print(str(src) + " --> " + str(dest))
+        elif arg == 'state':
+            print("------------------------")
+            print("Nodes' states")
+            print("------------------------")
+            for i in nodes:
+                node = t.getNode(i)
+                if node.isOn():
+                    state = 'ON'
+                else:
+                    state = 'OFF'
+                print("Node " + str(i) + ": " + state)
+        else:
+            print("Wrong argument for print command")
+            print("Usage: print topology")
+
+def off(args):
+    if len(args) == 1:
+        try:
+            id = int(args[0])
+            node = t.getNode(id)
+            node.turnOff()
+            print("Node " + str(id) + " turned off")
+        except ValueError:
+            print("Argument of 'off' command must be the id of the node")
+    else:
+        print("Wrong argument for off command")
+        print("Usage: off <node id>")
+
+def on(args):
+    if len(args) == 1:
+        try:
+            id = int(args[0])
+            node = t.getNode(id)
+            node.turnOn()
+            print("Node " + str(id) + " turned on")
+        except ValueError:
+            print("Argument of 'on' command must be the id of the node")
+    else:
+        print("Wrong argument for on command")
+        print("Usage: on <node id>")
+
 options = {
     'help': help,
     'run': run,
     'exit': exit,
     'load': load,
-    'boot': boot
+    'boot': boot,
+    'print': print_info,
+    'off': off,
+    'on': on
 }
 
 def get_command(array):

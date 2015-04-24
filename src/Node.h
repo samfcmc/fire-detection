@@ -17,7 +17,7 @@ enum {
   MESSAGE_GPS = 0,
   MESSAGE_SENSORS = 1,
   MESSAGE_FIRE = 2,
-  MESSAGE_GPS_ACK
+  MESSAGE_GPS_ACK = 3
 };
 
 typedef nx_struct Message {
