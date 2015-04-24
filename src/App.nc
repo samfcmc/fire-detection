@@ -10,6 +10,7 @@ implementation {
   components MainC;
   components new TimerMilliC() as Timer0;
   components new TimerMilliC() as Timer1;
+  components new TimerMilliC() as FireTimer;
   components GPSP;
   components SensorsP;
   components SmokeDetectorP;
@@ -27,7 +28,7 @@ implementation {
   NodeP.Sensors -> SensorsP;
   NodeP.SmokeDetector -> SmokeDetectorP;
   SmokeDetectorP.Random -> RandomC;
-  SmokeDetectorP.Timer1 -> Timer1;
+  SmokeDetectorP.FireTimer -> FireTimer;
   GPSP.Random ->RandomC;
 
   NodeP.AMPacket -> AMSenderC;

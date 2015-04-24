@@ -43,7 +43,7 @@ implementation {
     else if(IS_SENSOR_NODE) {
       dbg("Debug", "Instant %d - Sensor Node Booted!\n", call Timer0.getNow());
     }
-    else if(IS_SERVER_NODE){
+    else {
       dbg("Debug", "Instant %d - Server Node Booted!\n", call Timer0.getNow());
       f = fopen("log.txt", "w");
       fprintf(f, "Instant %d: Server booted.\n", call Timer0.getNow());
@@ -71,7 +71,7 @@ implementation {
       btrpkt->type = MESSAGE_SENSORS;
       btrpkt->value1 = temperature;
       btrpkt->value2 = humidity;
-      if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message))== SUCCESS) {
+      if (call AMSend.send(routeNodeAddr, &pkt, sizeof(Message))== SUCCESS) {
         busy = TRUE;
       }
     }
@@ -188,7 +188,7 @@ implementation {
         call SmokeDetector.boot();
       }
     }
-    else if(IS_SERVER_NODE){
+    else {
       dbg("Messages", "Server received message from node %d\n", received->nodeId);
       f = fopen("log.txt", "a");
       if(received->type == MESSAGE_GPS){
