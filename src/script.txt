@@ -3,7 +3,5 @@ load noise noise.txt
 boot
 print topology
 run 700
-print routing
-add 103 2 -50
-run 500
+print state
 print routing

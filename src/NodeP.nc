@@ -142,7 +142,6 @@ implementation {
       if(IS_SENSOR_NODE) {
         if(btrpkt->type == MESSAGE_SENSORS ||
           btrpkt->type == MESSAGE_GPS) {
-            dbg("Messages", "Sent sensor message to node %d\n", routeNodeAddr);
             if(!call Timer1.isRunning()) {
               call Timer1.startOneShot(TIMEOUT);
             }

@@ -10,11 +10,15 @@ r = t.radio()
 
 nodes = {}
 last_noise_filename = None
+debug_channels = {
+    'Boot': True,
+    'Debug': True,
+    'Messages': False,
+    'Start': False
+}
+
 t.addChannel("Boot", sys.stdout)
-t.addChannel("Start", sys.stdout)
-t.addChannel("GPS", sys.stdout)
 t.addChannel("Debug", sys.stdout)
-t.addChannel("Messages", sys.stdout)
 
 def load_noise(filename):
     global last_noise_filename
@@ -71,6 +75,10 @@ def help(args):
     print("off <node id> Turn off node with id <node id>")
     print("var <node id> <variable name> : Print the variable value of the node with <node id>")
     print("add <src_id> <dest_id> <gain> Add a link in the network topology from node <src_id> to <dest_id> with gain <gain>")
+    print("script <file> : Loads commands from a file with name <file>")
+    print("debug : Print all available debug channels")
+    print("debug enable <Channel> : Enables the debug channel <Channel>")
+    print("debug disable <Channel> : Disables the debug channel <Channel>")
     print("exit : Exit from the simulator")
 
 def exit(args):
@@ -225,6 +233,49 @@ def add(args):
         print("Wrong usage of command add")
         print("Usage: add <src_id> <dest_id> <gain>")
 
+def script(args):
+    if len(args) == 0:
+        print("Command script takes one argument which is the script file name")
+    else:
+        filename = args[0]
+        file = open(filename, "r")
+        for line in file:
+            process_input(line)
+        file.close()
+
+def print_channels():
+    global debug_channels
+    print("Available channels")
+    for channel in debug_channels:
+        state = debug_channels[channel]
+        if state:
+            state_str = 'ENABLED'
+        else:
+            state_str = 'DISABLED'
+        print(str(channel) + ": " + state_str)
+
+def debug(args):
+    if len(args) == 2:
+        global debug_channels
+        action = args[0]
+        channel = args[1]
+        if debug_channels.has_key(channel):
+            if action == 'enable':
+                t.addChannel(channel, sys.stdout)
+                debug_channels[channel] = True
+            elif action == 'disable':
+                t.removeChannel(channel, sys.stdout)
+                debug_channels[channel] = False
+            else:
+                print("Wrong argument for command debug")
+        else:
+            print("Channel " + str(channel) + " is not available")
+            print_channels()
+    else:
+        print("Command debug takes 2 arguments")
+        print("Usage: debug enable|disable <Channel>")
+        print_channels()
+
 options = {
     'help': help,
     'run': run,
@@ -235,7 +286,9 @@ options = {
     'off': off,
     'on': on,
     'var': var,
-    'add': add
+    'add': add,
+    'script': script,
+    'debug': debug
 }
 
 def get_command(array):
@@ -260,6 +313,10 @@ if len(sys.argv) >= 2:
     script_file = open(sys.argv[1], "r")
     for line in script_file:
         process_input(line)
+
+print("-------------------------------------------")
+print(" Fire Detection Sensor Network Simulator")
+print("-------------------------------------------")
 
 # Main loop
 while True:
