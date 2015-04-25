@@ -9,11 +9,35 @@ t = Tossim(vars)
 r = t.radio()
 
 nodes = {}
-
+last_noise_filename = None
 t.addChannel("Boot", sys.stdout)
+t.addChannel("Start", sys.stdout)
+t.addChannel("GPS", sys.stdout)
 t.addChannel("Debug", sys.stdout)
 t.addChannel("Messages", sys.stdout)
 
+def load_noise(filename):
+    global last_noise_filename
+    last_noise_filename = filename
+    noise = open(filename, "r")
+    for line in noise:
+      str1 = line.strip()
+      if str1:
+        val = int(str1)
+        for i in nodes:
+            t.getNode(i).addNoiseTraceReading(val)
+    for i in nodes:
+      t.getNode(i).createNoiseModel()
+
+def boot_node(nodeid):
+    time = (31 + t.ticksPerSecond() / 10) * nodeid +  1
+    print("Booting node " + str(nodeid) + " in time " + str(time))
+    t.getNode(nodeid).bootAtTime(time)
+
+
+"""
+Commands
+"""
 def run(args):
     if len(nodes) == 0:
         print("You need to load a topology first")
@@ -42,9 +66,11 @@ def help(args):
     print("run <events> : run the next <events> in the node network")
     print("print topology : Prints the entire topology of the network")
     print("print state : Print the state for each node in the network")
+    print("print routing : For each sensor node prints the routing node that it is connected to")
     print("on <node id> Turn on node with id <node id>")
     print("off <node id> Turn off node with id <node id>")
     print("var <node id> <variable name> : Print the variable value of the node with <node id>")
+    print("add <src_id> <dest_id> <gain> Add a link in the network topology from node <src_id> to <dest_id> with gain <gain>")
     print("exit : Exit from the simulator")
 
 def exit(args):
@@ -77,16 +103,8 @@ def load(args):
                 print("You need to load a topology first")
                 print("Try: 'load topology filename'")
             else:
-                noise = open("noise.txt", "r")
-                for line in noise:
-                  str1 = line.strip()
-                  if str1:
-                    val = int(str1)
-                    for i in nodes:
-                        print("Adding noise trace " + str(i))
-                        t.getNode(i).addNoiseTraceReading(val)
-                for i in nodes:
-                  t.getNode(i).createNoiseModel()
+                load_noise(file_name)
+                print("Noise model from " + file_name + " loaded")
         else:
             print("Usage: load topology|noise filename")
     else:
@@ -99,9 +117,7 @@ def boot(args):
         print("Type 'help' for more info")
     else:
         for i in nodes:
-            time = (31 + t.ticksPerSecond() / 10) * i +  1
-            print("Booting node " + str(i) + " in time " + str(time))
-            t.getNode(i).bootAtTime(time)
+            boot_node(i)
 
 def print_info(args):
     if len(args) == 0:
@@ -127,6 +143,16 @@ def print_info(args):
                 else:
                     state = 'OFF'
                 print("Node " + str(i) + ": " + state)
+        elif arg == 'routing':
+            print("------------------------")
+            print(" Sensor node -> Routing node")
+            print("------------------------")
+            for i in nodes:
+                if i > 99:
+                    m = t.getNode(i)
+                    var = m.getVariable('NodeP.routeNodeAddr')
+                    value = var.getData()
+                    print(str(i) + " --> " + str(value))
         else:
             print("Wrong argument for print command")
             print("Usage: print topology")
@@ -172,6 +198,33 @@ def var(args):
         print("Wrong arguments for var command")
         print("Usage: var <node id> <variable>")
 
+def add(args):
+    if len(args) == 3:
+        try:
+            src_id = int(args[0])
+            dest_id = int(args[1])
+            gain = int(args[2])
+            r.add(src_id, dest_id, gain)
+            m1 = t.getNode(src_id)
+            m2 = t.getNode(dest_id)
+            if not nodes.has_key(src_id):
+                nodes[src_id] = m1
+                print("New node in the network. id: " + str(src_id))
+                boot_node(src_id)
+            if not nodes.has_key(dest_id):
+                nodes[dest_id] = m1
+                print("New node in the network. id: " + str(dest_id))
+                boot_node(dest_id)
+            load_noise(last_noise_filename)
+        except ValueError:
+            print("Arguments of 'add' command should be numbers")
+    elif len(nodes) == 0:
+        print("You need to load a topology first")
+        print("Try: load topology <filename>")
+    else:
+        print("Wrong usage of command add")
+        print("Usage: add <src_id> <dest_id> <gain>")
+
 options = {
     'help': help,
     'run': run,
@@ -181,7 +234,8 @@ options = {
     'print': print_info,
     'off': off,
     'on': on,
-    'var': var
+    'var': var,
+    'add': add
 }
 
 def get_command(array):
@@ -190,10 +244,7 @@ def get_command(array):
 def get_args(array):
     return array[1:len(array)]
 
-# Main loop
-while True:
-    print("> Type a command or just 'help'")
-    user_input = raw_input()
+def process_input(user_input):
     input_array = user_input.split()
     if(len(input_array) > 0):
         command = get_command(input_array)
@@ -204,3 +255,14 @@ while True:
             print("You need to type a valid command")
             print("Type 'help' to see a list of all available commands")
     print("----------------------------------")
+
+if len(sys.argv) >= 2:
+    script_file = open(sys.argv[1], "r")
+    for line in script_file:
+        process_input(line)
+
+# Main loop
+while True:
+    print("> Type a command or just 'help'")
+    user_input = raw_input()
+    process_input(user_input)

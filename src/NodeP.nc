@@ -133,8 +133,10 @@ implementation {
   }
 
   event void AMSend.sendDone(message_t* msg, error_t error) {
+    Message *btrpkt;
+    dbg("Messages", "Node %d sent message\n", TOS_NODE_ID);
     if(&pkt == msg) {
-      Message *btrpkt = (Message*) (call Packet.getPayload(&pkt, sizeof(Message)));
+      btrpkt = (Message*) (call Packet.getPayload(&pkt, sizeof(Message)));
       dbg("Messages", "Instant %d - Message type %d sent!\n", btrpkt->timestamp, btrpkt->type);
       busy = FALSE;
       if(IS_SENSOR_NODE) {
