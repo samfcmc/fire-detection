@@ -17,7 +17,9 @@ enum {
   MESSAGE_GPS = 0,
   MESSAGE_SENSORS = 1,
   MESSAGE_FIRE = 2,
-  MESSAGE_GPS_ACK = 3
+  MESSAGE_JOIN = 3,
+  MESSAGE_JOIN_ACK = 4,
+  MESSAGE_JOIN_ACCEPT = 5
 };
 
 typedef nx_struct Message {
@@ -35,7 +37,7 @@ typedef nx_struct Message {
 #define IS_ROUTING_NODE (TOS_NODE_ID > SERVER_NODE_ID && TOS_NODE_ID < SENSOR_NODE_MIN_ID)
 #define IS_SENSOR_NODE (TOS_NODE_ID > ROUTING_NODE_MAX_ID)
 
-#define MESSAGE_TYPE(type) type == MESSAGE_GPS ? "GPS" : ( type == MESSAGE_SENSORS ? "SENSORS" : (type == MESSAGE_FIRE ? "FIRE" : (type == MESSAGE_GPS_ACK ? "GPS_ACK" : "!UNDEFINED!")))
+#define MESSAGE_TYPE(type) type == MESSAGE_GPS ? "GPS" : ( type == MESSAGE_SENSORS ? "SENSORS" : (type == MESSAGE_FIRE ? "FIRE" : (type == MESSAGE_JOIN ? "JOIN" : (type == MESSAGE_JOIN_ACK ? "JOIN_ACK" : (type == MESSAGE_JOIN_ACCEPT ? "JOIN_ACCEPT" : "!UNDEFINED!")))))
 #define MESSAGE_SOURCE(msg) call AMPacket.source(msg)
 #define MESSAGE_DEST(msg) call AMPacket.destination(msg)
 

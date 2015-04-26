@@ -4,5 +4,6 @@ boot
 print topology
 debug enable MessagesSensor
 debug enable MessagesServer
+debug enable MessagesRouting
 debug enable Timeout
 run 1000
