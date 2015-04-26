@@ -2,6 +2,6 @@ load topology topo.txt
 load noise noise.txt
 boot
 print topology
-run 700
-print state
-print routing
+debug enable MessagesSensor
+debug enable MessagesServer
+run 1000

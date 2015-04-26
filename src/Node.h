@@ -35,9 +35,8 @@ typedef nx_struct Message {
 #define IS_ROUTING_NODE (TOS_NODE_ID > SERVER_NODE_ID && TOS_NODE_ID < SENSOR_NODE_MIN_ID)
 #define IS_SENSOR_NODE (TOS_NODE_ID > ROUTING_NODE_MAX_ID)
 
-// Helper function to write to file
-inline void writeF(FILE *f, uint32_t instant, char *msg) {
-  fprintf(f, "Instant %d, Node %d : %s", instant, TOS_NODE_ID, msg);
-}
+#define MESSAGE_TYPE(type) type == MESSAGE_GPS ? "GPS" : ( type == MESSAGE_SENSORS ? "SENSORS" : (type == MESSAGE_FIRE ? "FIRE" : (type == MESSAGE_GPS_ACK ? "GPS_ACK" : "!UNDEFINED!")))
+#define MESSAGE_SOURCE(msg) call AMPacket.source(msg)
+#define MESSAGE_DEST(msg) call AMPacket.destination(msg)
 
 #endif

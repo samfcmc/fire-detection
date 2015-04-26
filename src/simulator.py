@@ -12,9 +12,17 @@ nodes = {}
 last_noise_filename = None
 debug_channels = {
     'Boot': True,
+    'Start': False,
     'Debug': True,
     'Messages': False,
-    'Start': False
+    'Start': False,
+    'Timeout': False,
+    'Sensors': False,
+    'GPS': False,
+    'Fire': False,
+    'MessagesSensor': False,
+    'MessagesRouting': False,
+    'MessagesServer': False
 }
 
 t.addChannel("Boot", sys.stdout)
