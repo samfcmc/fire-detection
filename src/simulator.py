@@ -79,6 +79,7 @@ def help(args):
     print("print topology : Prints the entire topology of the network")
     print("print state : Print the state for each node in the network")
     print("print routing : For each sensor node prints the routing node that it is connected to")
+    print("print server : Prints the server log file")
     print("on <node id> Turn on node with id <node id>")
     print("off <node id> Turn off node with id <node id>")
     print("var <node id> <variable name> : Print the variable value of the node with <node id>")
@@ -169,6 +170,17 @@ def print_info(args):
                     var = m.getVariable('NodeP.routeNodeAddr')
                     value = var.getData()
                     print(str(i) + " --> " + str(value))
+        elif arg == 'server':
+            print("------------------------")
+            print(" Server Log file")
+            print("------------------------")
+            file = open('log.txt', 'r')
+            for line in file:
+                print(line)
+            file.close()
+            print("------------------------")
+            print(" End of Server Log File")
+            print("------------------------")
         else:
             print("Wrong argument for print command")
             print("Usage: print topology")
