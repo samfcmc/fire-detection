@@ -20,9 +20,8 @@ debug_channels = {
     'Sensors': False,
     'GPS': False,
     'Fire': False,
-    'MessagesSensor': False,
-    'MessagesRouting': False,
-    'MessagesServer': False
+    'MessagesReceived': False,
+    'MessagesSent': False,
 }
 
 t.addChannel("Boot", sys.stdout)
@@ -80,6 +79,7 @@ def help(args):
     print("print state : Print the state for each node in the network")
     print("print routing : For each sensor node prints the routing node that it is connected to")
     print("print server : Prints the server log file")
+    print("print rank : Prints, for each routing node, its rank in the network")
     print("on <node id> Turn on node with id <node id>")
     print("off <node id> Turn off node with id <node id>")
     print("var <node id> <variable name> : Print the variable value of the node with <node id>")
@@ -88,6 +88,7 @@ def help(args):
     print("debug : Print all available debug channels")
     print("debug enable <Channel> : Enables the debug channel <Channel>")
     print("debug disable <Channel> : Disables the debug channel <Channel>")
+    print("stop : Stops the simulator and continue when the user presses Enter")
     print("exit : Exit from the simulator")
 
 def exit(args):
@@ -116,12 +117,8 @@ def load(args):
                 if not nodes.has_key(node2):
                     nodes[node2] = m1
         elif type == 'noise':
-            if len(nodes) == 0:
-                print("You need to load a topology first")
-                print("Try: 'load topology filename'")
-            else:
-                load_noise(file_name)
-                print("Noise model from " + file_name + " loaded")
+            load_noise(file_name)
+            print("Noise model from " + file_name + " loaded")
         else:
             print("Usage: load topology|noise filename")
     else:
@@ -170,6 +167,16 @@ def print_info(args):
                     var = m.getVariable('NodeP.routeNodeAddr')
                     value = var.getData()
                     print(str(i) + " --> " + str(value))
+        elif arg == 'rank':
+            print("------------------------")
+            print(" Routing node : Rank")
+            print("------------------------")
+            for i in nodes:
+                if i > 0 and i < 100:
+                    m = t.getNode(i)
+                    var = m.getVariable('NodeP.rank')
+                    value = var.getData()
+                    print(str(i) + " : " + str(value))
         elif arg == 'server':
             print("------------------------")
             print(" Server Log file")
@@ -246,9 +253,6 @@ def add(args):
             load_noise(last_noise_filename)
         except ValueError:
             print("Arguments of 'add' command should be numbers")
-    elif len(nodes) == 0:
-        print("You need to load a topology first")
-        print("Try: load topology <filename>")
     else:
         print("Wrong usage of command add")
         print("Usage: add <src_id> <dest_id> <gain>")
@@ -258,11 +262,26 @@ def script(args):
         print("Command script takes one argument which is the script file name")
     else:
         filename = args[0]
-        file = open(filename, "r")
-        for line in file:
-            process_input(line)
-        file.close()
-
+        try:
+            file = open(filename, 'r')
+        except IOError:
+            # Cannot find file
+            # Lets try to find it in some scripts directory
+            try:
+                file = open('../scripts/' + filename, 'r')
+            except IOError:
+                try:
+                    file = open('scripts/' + filename, 'r')
+                except IOError:
+                    print("Error")
+        if file:
+            for line in file:
+                process_input(line)
+            file.close()
+        else:
+            print("Cannot find file " + filename + " in:")
+            print(filename)
+            print("scripts/")
 def print_channels():
     global debug_channels
     print("Available channels")
@@ -296,6 +315,13 @@ def debug(args):
         print("Usage: debug enable|disable <Channel>")
         print_channels()
 
+def stop(args):
+    print("---------------------")
+    print("Simulation stopped now")
+    print("Press enter to continue...")
+    print("---------------------")
+    raw_input()
+
 options = {
     'help': help,
     'run': run,
@@ -308,7 +334,8 @@ options = {
     'var': var,
     'add': add,
     'script': script,
-    'debug': debug
+    'debug': debug,
+    'stop': stop
 }
 
 def get_command(array):

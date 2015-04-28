@@ -40,6 +40,8 @@ implementation {
   // to a routing node
   uint8_t sensorNodes = MAX_SENSOR_NODES;
 
+  uint8_t rank = 0;
+
   event void Boot.booted() {
     if(IS_ROUTING_NODE) {
       dbg("Boot", "Instant %d - Routing Node Booted!\n", call Timer0.getNow());
@@ -79,6 +81,20 @@ implementation {
         }
       }
     }
+    else if(IS_ROUTING_NODE) {
+      dbg("Timeout", "Timeout. Trying to get a new rank\n");
+      btrpkt = (Message*) (call Packet.getPayload(&pkt, sizeof(Message)));
+      btrpkt->type = MESSAGE_GET_RANK;
+      btrpkt->nodeId = TOS_NODE_ID;
+      if(busy) {
+        pendingMsg = btrpkt;
+      }
+      else {
+        if(call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message)) == SUCCESS) {
+          busy = TRUE;
+        }
+      }
+    }
   }
 
   event void Sensors.valuesReady(error_t err, uint16_t temperature, uint16_t humidity) {
@@ -90,6 +106,7 @@ implementation {
       btrpkt->type = MESSAGE_SENSORS;
       btrpkt->value1 = temperature;
       btrpkt->value2 = humidity;
+      btrpkt->rank = 0;
       dbg("Sensors", "Sensors values read. Temperature: %d Humidity: %d\n", temperature, humidity);
       if (call AMSend.send(routeNodeAddr, &pkt, sizeof(Message))== SUCCESS) {
         busy = TRUE;
@@ -105,6 +122,7 @@ implementation {
       btrpkt->type = MESSAGE_GPS;
       btrpkt->value1 = x;
       btrpkt->value2 = y;
+      btrpkt->rank = rank;
       dbg("GPS", "Position read. X: %d Y: %d\n", x, y);
       if (call AMSend.send(routeNodeAddr, &pkt, sizeof(Message))== SUCCESS) {
         busy = TRUE;
@@ -121,6 +139,7 @@ implementation {
       btrpkt-> type = MESSAGE_FIRE;
       btrpkt-> nodeId = TOS_NODE_ID;
       btrpkt-> timestamp = call Timer0.getNow();
+      btrpkt->rank = rank;
       if(busy) {
         pendingMsg = btrpkt;
         dbg("Fire", "Fire alert message is pending\n");
@@ -136,12 +155,20 @@ implementation {
   event void AMControl.startDone(error_t err) {
     if (err == SUCCESS) {
       Message *btrpkt;
+      dbg("Start", "Start done\n");
       if(IS_SENSOR_NODE) {
-        //call GPS.readPosition();
-        dbg("Start", "Start done\n");
         btrpkt = (Message*) (call Packet.getPayload(&pkt, sizeof(Message)));
         btrpkt->type = MESSAGE_JOIN;
         btrpkt->nodeId = TOS_NODE_ID;
+        if(call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message)) == SUCCESS) {
+          busy = TRUE;
+        }
+      }
+      else if(IS_ROUTING_NODE) {
+        btrpkt = (Message*) (call Packet.getPayload(&pkt, sizeof(Message)));
+        btrpkt->type = MESSAGE_GET_RANK;
+        btrpkt->nodeId = TOS_NODE_ID;
+        btrpkt->rank = rank;
         if(call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message)) == SUCCESS) {
           busy = TRUE;
         }
@@ -181,7 +208,7 @@ implementation {
         }
       }
       else if(IS_SENSOR_NODE) {
-        dbg("MessagesSensor", "Sensor node --> Message: %s Nodeid: %d To %d\n", MESSAGE_TYPE(btrpkt->type), btrpkt->nodeId, MESSAGE_DEST(msg));
+        SENT_MSG_DBG("MessagesSent", msg, btrpkt);
         if(btrpkt->type == MESSAGE_SENSORS ||
           btrpkt->type == MESSAGE_GPS ||
           btrpkt->type == MESSAGE_JOIN) {
@@ -193,52 +220,98 @@ implementation {
           call GPS.readPosition();
         }
       }
+      else if(IS_ROUTING_NODE) {
+        SENT_MSG_DBG("MessagesSent", msg, btrpkt);
+        if(btrpkt->type == MESSAGE_GET_RANK) {
+          call Timer1.stop();
+          call Timer1.startOneShot(TIMEOUT);
+        }
+      }
     }
   }
 
   event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len) {
     Message* received = (Message*) payload;
     if(IS_ROUTING_NODE) {
-      dbg("MessagesRouting", "Routing node <-- Message: %s Nodeid: %d From %d\n", MESSAGE_TYPE(received->type), received->nodeId, MESSAGE_SOURCE(msg));
-      if(received->type == MESSAGE_JOIN && sensorNodes) {
-        Message* btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
-        btrpkt->type = MESSAGE_JOIN_ACK;
-        btrpkt->nodeId = received->nodeId;
-        if(busy) {
-          pendingMsg = btrpkt;
-        }
-        else {
-          if(call AMSend.send(MESSAGE_SOURCE(msg), &pkt, sizeof(Message)) == SUCCESS) {
-            busy = TRUE;
+      RECEIVED_MSG_DBG("MessagesReceived", msg, received);
+      if(received->type == MESSAGE_GET_RANK) {
+        if(rank && !received->rank) {
+          Message* btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
+          btrpkt->type = MESSAGE_RANK;
+          btrpkt->nodeId = received->nodeId;
+          btrpkt->rank = rank;
+          if(busy) {
+            pendingMsg = btrpkt;
+          }
+          else {
+            if(call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message)) == SUCCESS) {
+              busy = TRUE;
+            }
           }
         }
       }
-      else if(received->type == MESSAGE_JOIN_ACCEPT) {
-        sensorNodes--;
-      }
-      else if(busy) {
-        if((received->type == MESSAGE_FIRE) ||
-          (received->type == MESSAGE_GPS && pendingMsg
-            && pendingMsg->type != MESSAGE_FIRE)) {
-          pendingMsg = received;
+      else if(received->type == MESSAGE_RANK) {
+        if(received->nodeId == TOS_NODE_ID) {
+          if((received->value1 + 1) > rank) {
+            rank = received->value1 + 1;
+            if(call Timer1.isRunning()) {
+              call Timer1.stop();
+            }
+          }
         }
       }
-      else {
-        Message* btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
-        btrpkt->type = received->type;
-        btrpkt->nodeId = received->nodeId;
-        btrpkt->timestamp = received->timestamp;
-        btrpkt->value1 = received->value1;
-        btrpkt->value2 = received->value2;
-        if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message)) == SUCCESS) {
-          busy = TRUE;
+      else if(rank) {
+        /* Routing nodes can handle other kinds
+         * of messages ONLY when they have a rank value
+         */
+        if(received->type == MESSAGE_JOIN && sensorNodes) {
+          Message* btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
+          btrpkt->type = MESSAGE_JOIN_ACK;
+          btrpkt->nodeId = received->nodeId;
+          if(busy) {
+            pendingMsg = btrpkt;
+          }
+          else {
+            if(call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message)) == SUCCESS) {
+              busy = TRUE;
+            }
+          }
+        }
+        else if(received->type == MESSAGE_JOIN_ACCEPT) {
+          sensorNodes--;
+        }
+        else if(received->type == MESSAGE_SENSORS ||
+          received->type == MESSAGE_FIRE ||
+          received->type == MESSAGE_GPS) {
+            if(!received->rank ||
+              received->rank > rank) {
+                if(busy) {
+                  if((received->type == MESSAGE_FIRE) ||
+                    (received->type == MESSAGE_GPS && pendingMsg
+                      && pendingMsg->type != MESSAGE_FIRE)) {
+                    pendingMsg = received;
+                    pendingMsg->rank = rank;
+                  }
+                }
+                else {
+                  Message* btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
+                  btrpkt->type = received->type;
+                  btrpkt->nodeId = received->nodeId;
+                  btrpkt->timestamp = received->timestamp;
+                  btrpkt->value1 = received->value1;
+                  btrpkt->value2 = received->value2;
+                  btrpkt->rank = rank;
+                  if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message)) == SUCCESS) {
+                    busy = TRUE;
+                  }
+                }
+            }
         }
       }
     }
     else if(IS_SENSOR_NODE) {
       Message* btrpkt;
-      am_addr_t source = call AMPacket.source(msg);
-      dbg("MessagesSensor", "Sensor node <-- Message: %s Nodeid: %d From:%d\n", MESSAGE_TYPE(received->type), received->nodeId, source);
+      RECEIVED_MSG_DBG("MessagesReceived", msg, received);
       if(received->type == MESSAGE_SENSORS && received->nodeId == TOS_NODE_ID) {
         // A routing node broadcasted a sensor measure message
         call Timer1.stop();
@@ -256,16 +329,32 @@ implementation {
       }
     }
     else {
-      dbg("MessagesServer", "Server node <-- Message: %s Nodeid: %d From: %d\n", MESSAGE_TYPE(received->type), received->nodeId, MESSAGE_SOURCE(msg));
-      f = fopen("log.txt", "a");
-      if(received->type == MESSAGE_GPS){
-        fprintf(f, "Instant %d, Node %d, x=%d, y=%d.\n", received->timestamp, received->nodeId, received->value1, received->value2);
-      }else if(received->type == MESSAGE_SENSORS){
-        fprintf(f, "Instant %d, Node %d, Temperature=%d, Humidity=%d.\n", received->timestamp, received->nodeId, received->value1, received->value2);
-      }else if(received->type == MESSAGE_FIRE){
-        fprintf(f, "Instant %d, Node %d, Fire!!\n", received->timestamp, received->nodeId);
+      RECEIVED_MSG_DBG("MessagesReceived", msg, received);
+      if(received->type == MESSAGE_GET_RANK) {
+        Message* btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
+        btrpkt->type = MESSAGE_RANK;
+        btrpkt->nodeId = received->nodeId;
+        btrpkt->value1 = rank;
+        if(busy) {
+          pendingMsg = btrpkt;
+        }
+        else {
+          if(call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message)) == SUCCESS) {
+            busy = TRUE;
+          }
+        }
       }
-      fclose(f);
+      else {
+        f = fopen("log.txt", "a");
+        if(received->type == MESSAGE_GPS){
+          fprintf(f, "Instant %d, Node %d, x=%d, y=%d.\n", received->timestamp, received->nodeId, received->value1, received->value2);
+        }else if(received->type == MESSAGE_SENSORS){
+          fprintf(f, "Instant %d, Node %d, Temperature=%d, Humidity=%d.\n", received->timestamp, received->nodeId, received->value1, received->value2);
+        }else if(received->type == MESSAGE_FIRE){
+          fprintf(f, "Instant %d, Node %d, Fire!!\n", received->timestamp, received->nodeId);
+        }
+        fclose(f);
+      }
     }
 
     return msg;

@@ -1,0 +1,17 @@
+load topology ../topologies/simple.txt
+load noise ../noise/noise.txt
+debug enable Messages
+debug enable MessagesSent
+debug enable MessagesReceived
+debug enable Start
+debug enable Timeout
+boot
+run 500
+stop
+run 500
+stop
+run 500
+stop
+run 500
+stop
+run 500
