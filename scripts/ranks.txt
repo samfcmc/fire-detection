@@ -8,10 +8,18 @@ debug enable Timeout
 boot
 run 500
 stop
-run 500
+print rank
 stop
 run 500
 stop
+print rank
+stop
 run 500
+stop
+print rank
+stop
+run 500
+stop
+print rank
 stop
 run 500

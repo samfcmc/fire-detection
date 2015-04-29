@@ -33,7 +33,9 @@ implementation {
   bool firstMsg = TRUE;
 
   message_t pkt;
-  Message *pendingMsg = NULL;
+  Message *bufferFireMsg = NULL;
+  Message *bufferGPSMsg = NULL;
+  Message *bufferMsg = NULL;
   am_addr_t routeNodeAddr;
 
   // Limit of sensor nodes that can be connected
@@ -73,7 +75,9 @@ implementation {
       btrpkt->type = MESSAGE_JOIN;
       btrpkt->nodeId = TOS_NODE_ID;
       if(busy) {
-        pendingMsg = btrpkt;
+        //Channel is busy
+        //Trigger timer again
+        call Timer1.startOneShot(TIMER_PERIOD);
       }
       else {
         if(call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message)) == SUCCESS) {
@@ -87,7 +91,7 @@ implementation {
       btrpkt->type = MESSAGE_GET_RANK;
       btrpkt->nodeId = TOS_NODE_ID;
       if(busy) {
-        pendingMsg = btrpkt;
+        call Timer1.startOneShot(TIMER_PERIOD);
       }
       else {
         if(call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message)) == SUCCESS) {
@@ -115,7 +119,7 @@ implementation {
   }
 
   event void GPS.positionReady(error_t err, uint16_t x, uint16_t y) {
-    if(err == SUCCESS && !busy) {
+    if(err == SUCCESS) {
       Message *btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
       btrpkt-> nodeId = TOS_NODE_ID;
       btrpkt-> timestamp = call Timer0.getNow();
@@ -141,7 +145,7 @@ implementation {
       btrpkt-> timestamp = call Timer0.getNow();
       btrpkt->rank = rank;
       if(busy) {
-        pendingMsg = btrpkt;
+        bufferFireMsg = btrpkt;
         dbg("Fire", "Fire alert message is pending\n");
       }
       else {
@@ -189,13 +193,24 @@ implementation {
     if(&pkt == msg) {
       btrpkt = (Message*) (call Packet.getPayload(&pkt, sizeof(Message)));
       busy = FALSE;
-      if(pendingMsg) {
-        dbg("Messages", "Message %s from sensor node %d was pending\n", MESSAGE_TYPE(pendingMsg->type), pendingMsg->nodeId);
-        btrpkt->type = pendingMsg->type;
-        btrpkt->nodeId = pendingMsg->nodeId;
-        btrpkt->timestamp = pendingMsg->timestamp;
-        btrpkt->value1 = pendingMsg->value1;
-        btrpkt->value2 = pendingMsg->value2;
+      if(bufferFireMsg || bufferGPSMsg || bufferMsg) {
+        Message *buffer;
+        if(bufferFireMsg) {
+          buffer = bufferFireMsg;
+        }
+        else if(bufferGPSMsg) {
+          buffer = bufferGPSMsg;
+        }
+        else {
+          buffer = bufferMsg;
+        }
+        dbg("Messages", "Message %s from sensor node %d was pending\n", MESSAGE_TYPE(buffer->type), buffer->nodeId);
+        btrpkt->type = buffer->type;
+        btrpkt->nodeId = buffer->nodeId;
+        btrpkt->timestamp = buffer->timestamp;
+        btrpkt->value1 = buffer->value1;
+        btrpkt->value2 = buffer->value2;
+        btrpkt->rank = buffer->rank;
         if(routeNodeAddr) {
           dest = routeNodeAddr;
         }
@@ -204,7 +219,9 @@ implementation {
         }
         if (call AMSend.send(dest, &pkt, sizeof(Message))== SUCCESS) {
           busy = TRUE;
-          pendingMsg = NULL;
+          bufferFireMsg = buffer == bufferFireMsg ? NULL : bufferFireMsg;
+          bufferGPSMsg = buffer == bufferGPSMsg ? NULL : bufferGPSMsg;
+          bufferMsg = buffer == bufferMsg ? NULL : bufferMsg;
         }
       }
       else if(IS_SENSOR_NODE) {
@@ -241,7 +258,7 @@ implementation {
           btrpkt->nodeId = received->nodeId;
           btrpkt->rank = rank;
           if(busy) {
-            pendingMsg = btrpkt;
+            bufferMsg = btrpkt;
           }
           else {
             if(call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message)) == SUCCESS) {
@@ -253,7 +270,7 @@ implementation {
       else if(received->type == MESSAGE_RANK) {
         if(received->nodeId == TOS_NODE_ID) {
           if((received->value1 + 1) > rank) {
-            rank = received->value1 + 1;
+            rank = received->rank + 1;
             if(call Timer1.isRunning()) {
               call Timer1.stop();
             }
@@ -269,7 +286,7 @@ implementation {
           btrpkt->type = MESSAGE_JOIN_ACK;
           btrpkt->nodeId = received->nodeId;
           if(busy) {
-            pendingMsg = btrpkt;
+            bufferMsg = btrpkt;
           }
           else {
             if(call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message)) == SUCCESS) {
@@ -286,11 +303,14 @@ implementation {
             if(!received->rank ||
               received->rank > rank) {
                 if(busy) {
-                  if((received->type == MESSAGE_FIRE) ||
-                    (received->type == MESSAGE_GPS && pendingMsg
-                      && pendingMsg->type != MESSAGE_FIRE)) {
-                    pendingMsg = received;
-                    pendingMsg->rank = rank;
+                  if(received->type == MESSAGE_FIRE) {
+                    bufferFireMsg = received;
+                  }
+                  else if(received->type == MESSAGE_GPS) {
+                    bufferGPSMsg = received;
+                  }
+                  else {
+                    bufferMsg = received;
                   }
                 }
                 else {
@@ -336,7 +356,7 @@ implementation {
         btrpkt->nodeId = received->nodeId;
         btrpkt->value1 = rank;
         if(busy) {
-          pendingMsg = btrpkt;
+          bufferMsg = btrpkt;
         }
         else {
           if(call AMSend.send(AM_BROADCAST_ADDR, &pkt, sizeof(Message)) == SUCCESS) {
