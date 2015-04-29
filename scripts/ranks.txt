@@ -5,6 +5,7 @@ debug enable MessagesSent
 debug enable MessagesReceived
 debug enable Start
 debug enable Timeout
+debug enable GPS
 boot
 run 500
 stop

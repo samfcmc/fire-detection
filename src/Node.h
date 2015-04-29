@@ -9,6 +9,7 @@ enum {
   SENSOR_NODE_MIN_ID = 100,
   AM_FIRE_DETECTION = 6,
   TIMEOUT = 500,
+  SERVER_TIMEOUT = 1000,
   MAX_SENSOR_NODES = 100,
 
   /*
@@ -21,7 +22,8 @@ enum {
   MESSAGE_JOIN_ACK = 4,
   MESSAGE_JOIN_ACCEPT = 5,
   MESSAGE_GET_RANK = 6,
-  MESSAGE_RANK = 7
+  MESSAGE_RANK = 7,
+  MESSAGE_CANNOT_REACH_SERVER = 8
 };
 
 typedef nx_struct Message {
@@ -36,11 +38,11 @@ typedef nx_struct Message {
 /*
  * Helper macros to distinguish between different nodes
  */
-#define IS_SERVER_NODE (TOS_NODE_ID == SERVER_NODE_ID)
+#define IS_SERVER_NODE (!TOS_NODE_ID == SERVER_NODE_ID)
 #define IS_ROUTING_NODE (TOS_NODE_ID > SERVER_NODE_ID && TOS_NODE_ID < SENSOR_NODE_MIN_ID)
 #define IS_SENSOR_NODE (TOS_NODE_ID > ROUTING_NODE_MAX_ID)
 
-#define MESSAGE_TYPE(type) type == MESSAGE_GPS ? "GPS" : ( type == MESSAGE_SENSORS ? "SENSORS" : (type == MESSAGE_FIRE ? "FIRE" : (type == MESSAGE_JOIN ? "JOIN" : (type == MESSAGE_JOIN_ACK ? "JOIN_ACK" : (type == MESSAGE_JOIN_ACCEPT ? "JOIN_ACCEPT" : (type == MESSAGE_GET_RANK ? "GET_RANK" : (type == MESSAGE_RANK ? "RANK" : "!UNDEFINED!")))))))
+#define MESSAGE_TYPE(type) type == MESSAGE_GPS ? "GPS" : ( type == MESSAGE_SENSORS ? "SENSORS" : (type == MESSAGE_FIRE ? "FIRE" : (type == MESSAGE_JOIN ? "JOIN" : (type == MESSAGE_JOIN_ACK ? "JOIN_ACK" : (type == MESSAGE_JOIN_ACCEPT ? "JOIN_ACCEPT" : (type == MESSAGE_GET_RANK ? "GET_RANK" : (type == MESSAGE_RANK ? "RANK" : (type == MESSAGE_CANNOT_REACH_SERVER ? "CANNOT_REACH_SERVER" : "!UNDEFINED!"))))))))
 #define MESSAGE_SOURCE(msg) call AMPacket.source(msg)
 #define MESSAGE_DEST(msg) call AMPacket.destination(msg)
 
