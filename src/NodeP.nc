@@ -27,7 +27,9 @@ module NodeP {
 
 implementation {
 
+  #ifdef TOSSIM
   FILE *f;
+  #endif
 
   bool busy = FALSE;
   bool firstMsg = TRUE;
@@ -47,6 +49,11 @@ implementation {
   bool inNetwork = FALSE;
 
   event void Boot.booted() {
+    bool tossim = FALSE;
+    #ifdef TOSSIM
+    tossim = TRUE;
+    #endif
+    dbg("Boot", "TOSSIM: %d\n", tossim);
     if(IS_ROUTING_NODE) {
       dbg("Boot", "Instant %d - Routing Node Booted!\n", call Timer0.getNow());
     }
@@ -55,9 +62,11 @@ implementation {
     }
     else {
       dbg("Boot", "Instant %d - Server Node Booted!\n", call Timer0.getNow());
+      #ifdef TOSSIM
       f = fopen("log.txt", "w");
       fprintf(f, "Instant %d: Server booted.\n", call Timer0.getNow());
       fclose(f);
+      #endif
     }
     call AMControl.start();
   }
@@ -453,7 +462,7 @@ implementation {
             busy = TRUE;
           }
         }
-
+        #ifdef TOSSIM
         f = fopen("log.txt", "a");
         if(received->type == MESSAGE_GPS){
           fprintf(f, "Instant %d, Node %d, x=%d, y=%d.\n", received->timestamp, received->nodeId, received->value1, received->value2);
@@ -463,6 +472,7 @@ implementation {
           fprintf(f, "Instant %d, Node %d, Fire!!\n", received->timestamp, received->nodeId);
         }
         fclose(f);
+        #endif
       }
     }
 
