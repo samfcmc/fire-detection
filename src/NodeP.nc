@@ -49,11 +49,9 @@ implementation {
   bool inNetwork = FALSE;
 
   event void Boot.booted() {
-    bool tossim = FALSE;
     #ifdef TOSSIM
     tossim = TRUE;
     #endif
-    dbg("Boot", "TOSSIM: %d\n", tossim);
     if(IS_ROUTING_NODE) {
       dbg("Boot", "Instant %d - Routing Node Booted!\n", call Timer0.getNow());
     }

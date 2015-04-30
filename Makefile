@@ -14,6 +14,6 @@ clean:
 run:
 	$(SSH) -c '$(GOTO_SRC_DIR) && python simulator.py'
 micaz:
-	$(SSH) -c '$(GOTO_SRC_DIR) && make -Ireal micaz'
+	$(SSH) -c '$(GOTO_SRC_DIR) && make micaz'
 
 all: tossim
