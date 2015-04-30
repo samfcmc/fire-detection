@@ -49,9 +49,6 @@ implementation {
   bool inNetwork = FALSE;
 
   event void Boot.booted() {
-    #ifdef TOSSIM
-    tossim = TRUE;
-    #endif
     if(IS_ROUTING_NODE) {
       dbg("Boot", "Instant %d - Routing Node Booted!\n", call Timer0.getNow());
     }
@@ -61,6 +58,7 @@ implementation {
     else {
       dbg("Boot", "Instant %d - Server Node Booted!\n", call Timer0.getNow());
       #ifdef TOSSIM
+      dbg("Boot", "TESTING\n");
       f = fopen("log.txt", "w");
       fprintf(f, "Instant %d: Server booted.\n", call Timer0.getNow());
       fclose(f);
