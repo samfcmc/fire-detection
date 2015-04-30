@@ -5,7 +5,7 @@ SRC_DIR=$(HOME_DIR)/src
 GOTO_SRC_DIR=cd $(SRC_DIR)
 MAKE_TOSSIM=make micaz sim
 MAKE_CLEAN=make clean
-MAKE_MICAZ=make micaz sim
+MAKE_MICAZ=make micaz
 RUN_SIMULATOR=python simulator.py
 SSH=vagrant ssh
 
