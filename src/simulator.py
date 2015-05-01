@@ -100,9 +100,21 @@ def load(args):
         type = args[0]
         file_name = args[1]
         if type == 'topology':
+            failed = False
             try:
-                f = open(file_name, "r")
+                f = open(file_name, 'r')
                 nodes.clear()
+            except IOError:
+                try:
+                    f = open('../topologies/' + file_name, 'r')
+                except IOError:
+                    try:
+                        f = open('topologies/' + file_name, 'r')
+                    except:
+                        failed = True
+            if failed:
+                print("Cannot find topology file " + file_name)
+            else:
                 global t
                 global r
                 t = Tossim(vars)
@@ -121,15 +133,26 @@ def load(args):
                         nodes[node1] = m1
                     if not nodes.has_key(node2):
                         nodes[node2] = m1
-            except IOError:
-                print("Cannot find topology file " + file_name)
         elif type == 'noise':
-            load_noise(file_name)
-            print("Noise model from " + file_name + " loaded")
+            failed = False
+            try:
+                load_noise(file_name)
+            except IOError:
+                try:
+                    load_noise('../noise/' + file_name)
+                except IOError:
+                    try:
+                        load_noise('noise/' + file_name)
+                    except IOError:
+                        failed = True
+            if failed:
+                print('Cannot find noise model file ' + file_name)
+            else:
+                print("Noise model from " + file_name + " loaded")
         else:
-            print("Usage: load topology|noise filename")
+            print("Usage: load topology|noise <filename>")
     else:
-        print("Usage: load topology|noise filename")
+        print("Usage: load topology|noise <filename>")
 
 def boot(args):
     if len(nodes) == 0:
