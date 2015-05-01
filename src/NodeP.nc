@@ -396,7 +396,6 @@ implementation {
         am_addr_t source = call AMPacket.source(msg);
         if(routeNodeAddr != source) {
           routeNodeAddr = source;
-          dbg("MessagesReceived", "JOIN ACK %d\n", source != routeNodeAddr);
           call Timer1.stop();
           btrpkt = (Message*)(call Packet.getPayload(&pkt, sizeof(Message)));
           btrpkt->type = MESSAGE_JOIN_ACCEPT;
