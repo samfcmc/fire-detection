@@ -383,9 +383,13 @@ implementation {
     }
     else if(IS_SENSOR_NODE) {
       RECEIVED_MSG_DBG("MessagesReceived", msg, received);
-      if(received->type == MESSAGE_SENSORS && received->nodeId == TOS_NODE_ID) {
-        // A routing node broadcasted a sensor measure message
-        call Timer1.stop();
+      if(received->type == MESSAGE_SENSORS ||
+        received->type == MESSAGE_GPS ||
+        received->type == MESSAGE_FIRE) {
+          if(received->nodeId == TOS_NODE_ID) {
+            // A routing node broadcasted a sensor measure message
+            call Timer1.stop();
+          }
       }
       else if(received->type == MESSAGE_JOIN_ACK && received->nodeId == TOS_NODE_ID && !inNetwork) {
         // Routing node sends back a join request message

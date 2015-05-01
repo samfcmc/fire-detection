@@ -100,22 +100,29 @@ def load(args):
         type = args[0]
         file_name = args[1]
         if type == 'topology':
-            f = open(file_name, "r")
-            nodes.clear()
-            for line in f:
-              s = line.split()
-              if s:
-                print " ", s[0], " ", s[1], " ", s[2]
-                node1 = int(s[0])
-                node2 = int(s[1])
-                gain = float(s[2])
-                r.add(node1, node2, gain)
-                m1 = t.getNode(node1)
-                m2 = t.getNode(node2)
-                if not nodes.has_key(node1):
-                    nodes[node1] = m1
-                if not nodes.has_key(node2):
-                    nodes[node2] = m1
+            try:
+                f = open(file_name, "r")
+                nodes.clear()
+                global t
+                global r
+                t = Tossim(vars)
+                r = t.radio()
+                for line in f:
+                  s = line.split()
+                  if s:
+                    print " ", s[0], " ", s[1], " ", s[2]
+                    node1 = int(s[0])
+                    node2 = int(s[1])
+                    gain = float(s[2])
+                    r.add(node1, node2, gain)
+                    m1 = t.getNode(node1)
+                    m2 = t.getNode(node2)
+                    if not nodes.has_key(node1):
+                        nodes[node1] = m1
+                    if not nodes.has_key(node2):
+                        nodes[node2] = m1
+            except IOError:
+                print("Cannot find topology file " + file_name)
         elif type == 'noise':
             load_noise(file_name)
             print("Noise model from " + file_name + " loaded")
