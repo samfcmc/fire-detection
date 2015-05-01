@@ -19,7 +19,7 @@ run:
 	$(SSH) -c '$(GOTO_SRC_DIR) && $(MAKE_TOSSIM) && $(RUN_SIMULATOR)'
 micaz:
 	$(SSH) -c '$(GOTO_SRC_DIR) && $(MAKE_MICAZ)'
-zip:
+zip: clean
 	zip $(ZIP_NAME) -r $(TO_ZIP)
 
 all: tossim
