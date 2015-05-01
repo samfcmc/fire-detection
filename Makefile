@@ -8,6 +8,8 @@ MAKE_CLEAN=make clean
 MAKE_MICAZ=make micaz
 RUN_SIMULATOR=python simulator.py
 SSH=vagrant ssh
+ZIP_NAME=fire-detection-wsn.zip
+TO_ZIP=LICENSE Makefile noise/ README.md report.pdf scripts/ src/ topologies/ Vagrantfile
 
 tossim:
 	$(SSH) -c '$(GOTO_SRC_DIR) && $(MAKE_TOSSIM)'
@@ -17,5 +19,7 @@ run:
 	$(SSH) -c '$(GOTO_SRC_DIR) && $(MAKE_TOSSIM) && $(RUN_SIMULATOR)'
 micaz:
 	$(SSH) -c '$(GOTO_SRC_DIR) && $(MAKE_MICAZ)'
+zip:
+	zip $(ZIP_NAME) -r $(TO_ZIP)
 
 all: tossim
