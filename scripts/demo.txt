@@ -1,0 +1,8 @@
+load topology ../topologies/demo.txt
+load noise ../noise/noise.txt
+debug enable Messages
+debug enable MessagesSent
+debug enable MessagesReceived
+debug enable Start
+debug enable Timeout
+debug enable GPS
